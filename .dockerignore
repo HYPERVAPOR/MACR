@@ -1,0 +1,27 @@
+# Git / environment
+.git
+.gitignore
+.env
+.env.example
+
+# Virtual environment
+.venv/
+venv/
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Agent sessions
+.kimi/
+
+# Generated data and outputs
+data/
+outputs/
+results/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
