@@ -1,0 +1,23 @@
+---
+title: "MACR：多智能体协同程序修复框架研究进展与中期报告"
+author:
+  - name: "MACR 研究团队"
+    affiliation: "MACR 项目组"
+date: "2026 年 7 月 1 日"
+abstract: |
+  本报告系统总结了 MACR（Multi-Agent Collaborative Repair）多智能体协同程序修复框架的研究进展、阶段性实验成果以及下一步工作计划。
+  我们首先阐述了自动化程序修复（APR）的研究背景与面临的挑战，进而介绍了 MACR 的整体架构、核心模块（协调器、子智能体、代码知识图谱）以及基于 ReAct 的协同修复流程。
+  在 QuixBugs Python 数据集（40 个 bug）上的消融实验表明，引入代码知识图谱（KG）后，MACR 的 plausible 修复率达到 95.0%，patch 生成率达到 100.0%，显著优于单智能体基线（87.5% / 92.5%）。
+  我们还分析了不同配置的失败案例、token 开销与可扩展性，并制定了下一步在 Defects4J、Sub-Agent 触发策略、提示工程与论文投稿方面的具体计划。
+keywords:
+  - 自动化程序修复
+  - 大语言模型
+  - 多智能体系统
+  - 代码知识图谱
+  - 中期报告
+numbersections: false
+link-citations: true
+link-bibliography: true
+csl: csl/ieee.csl
+bibliography: references.bib
+---

@@ -1,0 +1,47 @@
+---
+title: "MACR: Multi-Agent Collaborative Repair for Automated Program Repair"
+shorttitle: "MACR"
+# Authors for generic / IEEE use
+author:
+  - name: "Anonymous Author(s)"
+    affiliation: "Affiliation"
+    country: "Country"
+    email: "email@example.com"
+# ACL-style authors (override in template if needed)
+authors:
+  - "Anonymous Author(s)"
+institute: "Affiliation"
+email: "email@example.com"
+abstract: |
+  Automated Program Repair (APR) aims to reduce the cost of software debugging by automatically generating patches for buggy programs.
+  Recent Large Language Models (LLMs) have shown promising results in patch generation, yet they still struggle with long-context reasoning, context pollution, and precise dependency understanding in real-world codebases.
+  This paper proposes MACR, a Multi-Agent Collaborative Repair framework that orchestrates specialized sub-agents for fault localization, patch generation, and validation, while leveraging a dynamic code knowledge graph built from Abstract Syntax Trees to provide structured code context.
+  We evaluate MACR on the QuixBugs dataset and demonstrate that collaborative agent orchestration combined with code knowledge graphs improves repair effectiveness compared to single-agent baselines.
+  Our results highlight the importance of role specialization and structured context in LLM-based program repair.
+keywords:
+  - automated program repair
+  - large language models
+  - multi-agent systems
+  - knowledge graphs
+  - code understanding
+# Conference / template switches
+venue: "Working Paper"
+year: 2026
+# Pandoc variables
+link-citations: true
+link-bibliography: true
+numbersections: true
+figPrefix:
+  - "Fig."
+  - "Figs."
+tblPrefix:
+  - "Table"
+  - "Tables"
+eqnPrefix:
+  - "Eq."
+  - "Eqs."
+citeproc: true
+# Citation format fallback (Makefile overrides via --csl)
+csl: csl/ieee.csl
+bibliography: references.bib
+---

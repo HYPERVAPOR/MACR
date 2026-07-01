@@ -1,0 +1,35 @@
+# Build artifacts
+build/*
+!build/.gitkeep
+
+# Generated figures
+figures/output/*
+!figures/output/.gitkeep
+
+# LaTeX auxiliary files (in case of manual compilation)
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.xdv
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
