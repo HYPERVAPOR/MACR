@@ -76,6 +76,31 @@ def add_blank_lines(doc, n=2):
         p.paragraph_format.line_spacing = 1.5
 
 
+def extract_references():
+    """Generate the formatted reference list from report.md via pandoc citeproc."""
+    cmd = [
+        "pandoc", str(ROOT / "report_metadata.yaml"), str(ROOT / "report.md"),
+        "--lua-filter", str(ROOT / "filters" / "include.lua"),
+        "--lua-filter", str(ROOT / "filters" / "table-report.lua"),
+        "--bibliography", str(BIBLIO),
+        "--citeproc",
+        "--csl", str(CSL),
+        "-t", "plain",
+        "--wrap", "none",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    text = result.stdout
+    # Extract everything from "参考文献" to the end
+    marker = "参考文献"
+    idx = text.find(marker)
+    if idx == -1:
+        return ""
+    refs = text[idx + len(marker):].strip()
+    # Clean up math warnings that may have leaked into plain text
+    refs = re.sub(r"\[WARNING\][^\n]*\n", "", refs)
+    return refs
+
+
 def md_to_plain(md_path):
     """Convert a markdown file to plain text with numbered citations."""
     cmd = [
@@ -339,6 +364,18 @@ def main():
     add_blank_lines(doc, 4)
     add_paragraph(doc, "专家组成员签字：", alignment=WD_ALIGN_PARAGRAPH.RIGHT, first_line_indent=Cm(0))
     add_paragraph(doc, "年    月    日", alignment=WD_ALIGN_PARAGRAPH.RIGHT, first_line_indent=Cm(0))
+
+    # References
+    refs = extract_references()
+    if refs:
+        doc.add_page_break()
+        add_section_title(doc, "参考文献")
+        for line in refs.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            add_paragraph(doc, line, size=10.5, first_line_indent=Cm(0.74),
+                          line_spacing=1.25, space_after=Pt(4))
 
     out_path = "硕士研究生论文中期考核报告_MACR.docx"
     doc.save(out_path)
