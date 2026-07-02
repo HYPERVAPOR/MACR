@@ -76,33 +76,9 @@ def add_blank_lines(doc, n=2):
         p.paragraph_format.line_spacing = 1.5
 
 
-def extract_references():
-    """Generate the formatted reference list from report.md via pandoc citeproc."""
-    cmd = [
-        "pandoc", str(ROOT / "report_metadata.yaml"), str(ROOT / "report.md"),
-        "--lua-filter", str(ROOT / "filters" / "include.lua"),
-        "--lua-filter", str(ROOT / "filters" / "table-report.lua"),
-        "--bibliography", str(BIBLIO),
-        "--citeproc",
-        "--csl", str(CSL),
-        "-t", "plain",
-        "--wrap", "none",
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    text = result.stdout
-    # Extract everything from "参考文献" to the end
-    marker = "参考文献"
-    idx = text.find(marker)
-    if idx == -1:
-        return ""
-    refs = text[idx + len(marker):].strip()
-    # Clean up math warnings that may have leaked into plain text
-    refs = re.sub(r"\[WARNING\][^\n]*\n", "", refs)
-    return refs
-
-
 def md_to_plain(md_path):
-    """Convert a markdown file to plain text with numbered citations."""
+    """Convert a markdown file to plain text with numbered citations.
+    Bibliography is suppressed here; references are appended separately."""
     cmd = [
         "pandoc", str(md_path),
         "--bibliography", str(BIBLIO),
@@ -110,6 +86,7 @@ def md_to_plain(md_path):
         "--csl", str(CSL),
         "-t", "plain",
         "--wrap", "none",
+        "--metadata", "suppress-bibliography=true",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return result.stdout
@@ -243,53 +220,76 @@ def create_expert_table(doc):
     return table
 
 
+def generate_report_plain():
+    """Generate plain text from report.md with consistent citation numbering.
+    Returns (body, references) split at the bibliography marker."""
+    cmd = [
+        "pandoc", str(ROOT / "report_metadata.yaml"), str(ROOT / "report.md"),
+        "--lua-filter", str(ROOT / "filters" / "include.lua"),
+        "--lua-filter", str(ROOT / "filters" / "table-report.lua"),
+        "--bibliography", str(BIBLIO),
+        "--citeproc",
+        "--csl", str(CSL),
+        "-t", "plain",
+        "--wrap", "none",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    text = result.stdout
+    marker = "参考文献"
+    idx = text.find(marker)
+    if idx == -1:
+        body = text
+        refs = ""
+    else:
+        body = text[:idx].strip()
+        refs = text[idx + len(marker):].strip()
+    # Clean math warnings that may have leaked into plain text
+    body = re.sub(r"\[WARNING\][^\n]*\n", "", body)
+    refs = re.sub(r"\[WARNING\][^\n]*\n", "", refs)
+    body = clean_plain_text(body)
+    return body, refs
+
+
 def add_section2_from_markdown(doc):
-    """Populate section 2 from sections/report_*.md."""
+    """Populate section 2 from report.md, ensuring consistent citation numbering."""
     add_section_title(doc, "二、硕士研究生论文工作阶段性总结")
     add_paragraph(doc, "填写内容包括但不限于以下几点：", first_line_indent=Cm(0), size=12)
     add_paragraph(doc, "阐述论文工作的进展和取得的阶段性成果。", first_line_indent=Cm(0.74), size=12)
     add_paragraph(doc, "介绍论文发表的情况。", first_line_indent=Cm(0.74), size=12)
     add_paragraph(doc, "制定下一步研究计划及论文工作计划。", first_line_indent=Cm(0.74), size=12)
 
-    # Read and clean each section
-    intro = clean_plain_text(md_to_plain(SECTIONS_DIR / "report_introduction.md"))
-    progress = clean_plain_text(md_to_plain(SECTIONS_DIR / "report_progress.md"))
-    publication = clean_plain_text(md_to_plain(SECTIONS_DIR / "report_publication.md"))
-    plan = clean_plain_text(md_to_plain(SECTIONS_DIR / "report_plan.md"))
+    body, _ = generate_report_plain()
 
-    # Remap top-level headings to section-2 numbering
-    intro = re.sub(r"^一、引言\s*", "", intro)
-    intro = re.sub(r"^(\d+\.\d+)\s+", r"\1 ", intro)
+    # Remap top-level Chinese headings to section-2 numbering
+    body = re.sub(r"^一、引言\s*", "", body)
+    body = re.sub(r"^二、工作进展与阶段性成果\s*", "", body)
+    body = re.sub(r"^三、方法论\s*", "", body)
+    body = re.sub(r"^四、论文发表情况\s*", "", body)
+    body = re.sub(r"^五、下一步研究计划与论文工作计划\s*", "", body)
 
-    progress = re.sub(r"^二、工作进展与阶段性成果\s*", "", progress)
-    publication = re.sub(r"^四、论文发表情况\s*", "", publication)
-    publication = re.sub(r"\b4\.(\d+(?:\.\d+)*\s+)", r"3.\1", publication)
-    plan = re.sub(r"^五、下一步研究计划与论文工作计划\s*", "", plan)
-    plan = re.sub(r"\b5\.(\d+(?:\.\d+)*\s+)", r"4.\1", plan)
+    # Remap section numbers to fit the four-part section-2 structure:
+    # methodology (3.x) -> 2.5.x, publication (4.x) -> 3.x, plan (5.x) -> 4.x
+    # Use placeholders to avoid chained remapping collisions.
+    body = re.sub(r"(?m)^3\.(\d+(?:\.\d+)*\s+)", r"TEMP3.\1", body)
+    body = re.sub(r"(?m)^5\.(\d+(?:\.\d+)*\s+)", r"4.\1", body)
+    body = re.sub(r"(?m)^4\.(\d+(?:\.\d+)*\s+)", r"3.\1", body)
+    body = re.sub(r"(?m)^TEMP3\.(\d+(?:\.\d+)*\s+)", r"2.5.\1", body)
+    # Keep introduction (1.x) and progress (2.x) as is
 
-    # Combine
-    parts = [
-        ("1 研究背景与问题", intro),
-        ("2 论文工作进展与阶段性成果", progress),
-        ("3 论文发表情况", publication),
-        ("4 下一步研究计划及论文工作计划", plan),
-    ]
-
-    for heading, body in parts:
-        if not body.strip():
+    for para in split_into_paragraphs(body):
+        if not para:
             continue
-        add_paragraph(doc, heading, bold=True, first_line_indent=Cm(0.74), space_before=Pt(8))
-        for para in split_into_paragraphs(body):
-            if not para:
-                continue
-            # Detect markdown-like subsection headings (e.g., "1.1 研究背景")
-            if re.match(r"^\d+(\.\d+)+\s+", para) and len(para) < 60:
-                add_paragraph(doc, para, bold=True, first_line_indent=Cm(0.74), space_before=Pt(4))
-            # Detect list items like "1. " or "- " or "（1）"
-            elif re.match(r"^(\d+\.\s+|[-•]\s+|（\d+）)", para):
-                add_paragraph(doc, para, first_line_indent=Cm(0.74))
-            else:
-                add_paragraph(doc, para, first_line_indent=Cm(0.74))
+        # Top-level section headings in the report (e.g., "1 研究背景")
+        if re.match(r"^\d+\s+", para) and len(para) < 40:
+            add_paragraph(doc, para, bold=True, first_line_indent=Cm(0.74), space_before=Pt(8))
+        # Subsection headings (e.g., "1.1 研究背景")
+        elif re.match(r"^\d+(\.\d+)+\s+", para) and len(para) < 60:
+            add_paragraph(doc, para, bold=True, first_line_indent=Cm(0.74), space_before=Pt(4))
+        # List items
+        elif re.match(r"^(\d+\.\s+|[-•]\s+|（\d+）)", para):
+            add_paragraph(doc, para, first_line_indent=Cm(0.74))
+        else:
+            add_paragraph(doc, para, first_line_indent=Cm(0.74))
 
     add_blank_lines(doc, 4)
 
@@ -366,7 +366,7 @@ def main():
     add_paragraph(doc, "年    月    日", alignment=WD_ALIGN_PARAGRAPH.RIGHT, first_line_indent=Cm(0))
 
     # References
-    refs = extract_references()
+    _, refs = generate_report_plain()
     if refs:
         doc.add_page_break()
         add_section_title(doc, "参考文献")
